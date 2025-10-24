@@ -13,7 +13,7 @@ lerna-debug.log*
 report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
 
 # remove wrangler files
-*.jsonc
+*.local.jsonc
 
 # Runtime data
 
