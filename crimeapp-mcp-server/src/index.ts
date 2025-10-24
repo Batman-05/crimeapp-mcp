@@ -1,25 +1,28 @@
-import type { DurableObjectState } from "cloudflare:workers";
 import { McpAgent } from "agents/mcp";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 
+type SecretBinding = { get(name?: string): Promise<string | undefined> };
+
 type WorkerEnv = Env & {
-	OPENAI_API_KEY?: string;
+	OPENAI_API_KEY?: string | SecretBinding;
 };
+
+async function resolveOpenAiKey(binding: WorkerEnv["OPENAI_API_KEY"]) {
+	if (!binding) return undefined;
+	if (typeof binding === "string") return binding;
+	if (typeof binding === "object" && "get" in binding && typeof binding.get === "function") {
+		return binding.get();
+	}
+	return undefined;
+}
 
 // Define our MCP agent with tools
 export class MyMCP extends McpAgent<WorkerEnv> {
-	private readonly openAiApiKey?: string;
-
 	server = new McpServer({
 		name: "Authless Calculator",
 		version: "1.0.0",
 	});
-
-	constructor(ctx: DurableObjectState, env: WorkerEnv) {
-		super(ctx, env);
-		this.openAiApiKey = env.OPENAI_API_KEY;
-	}
 
 	async init() {
 
@@ -34,7 +37,9 @@ export class MyMCP extends McpAgent<WorkerEnv> {
 				maxTokens: z.coerce.number().int().positive().optional(),
 			},
 			async ({ model, prompt, system, temperature, maxTokens }) => {
-				if (!this.openAiApiKey) {
+				const apiKey = await resolveOpenAiKey(this.env.OPENAI_API_KEY);
+
+				if (!apiKey) {
 					return {
 						content: [
 							{
@@ -50,7 +55,7 @@ export class MyMCP extends McpAgent<WorkerEnv> {
 					const response = await fetch("https://api.openai.com/v1/chat/completions", {
 						method: "POST",
 						headers: {
-							Authorization: `Bearer ${this.openAiApiKey}`,
+							Authorization: `Bearer ${apiKey}`,
 							"Content-Type": "application/json",
 						},
 						body: JSON.stringify({
