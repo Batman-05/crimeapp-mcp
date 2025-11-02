@@ -1,50 +1,24 @@
-# Building a Remote MCP Server on Cloudflare (Without Auth)
+# MCP Server
+The crimeapp-mcp-server folder contains the code to deploy the MCP server and its tools using Cloudflare workers.
 
-This example allows you to deploy a remote MCP server that doesn't require authentication on Cloudflare Workers. 
+The bindings for the MCP server/workers are defined in wrangler.local.jsonc, which is not synced for security reasons.
 
-## Get started: 
+The information missing from the wrangler.jsonc are as follow:
+	"secrets_store_secrets": [
+		{
+			"binding": "OPENAI_API_KEY", <- whatever name you want to call your binding
+			"store_id": <your store ID>,
+			"secret_name": "OPEN_API_KEY" <- the secret name in your Cloudflare secret store
+		}
+  	],
+	"d1_databases": [
+		{
+			"binding": "CRIME_DB",
+			"database_name": <your db name>,
+			"database_id": <your db id>,
+		}
+	],
 
-[![Deploy to Workers](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/cloudflare/ai/tree/main/demos/remote-mcp-authless)
 
-This will deploy your MCP server to a URL like: `remote-mcp-server-authless.<your-account>.workers.dev/sse`
-
-Alternatively, you can use the command line below to get the remote MCP Server created on your local machine:
-```bash
-npm create cloudflare@latest -- my-mcp-server --template=cloudflare/ai/demos/remote-mcp-authless
-```
-
-## Customizing your MCP Server
-
-To add your own [tools](https://developers.cloudflare.com/agents/model-context-protocol/tools/) to the MCP server, define each tool inside the `init()` method of `src/index.ts` using `this.server.tool(...)`. 
-
-## Connect to Cloudflare AI Playground
-
-You can connect to your MCP server from the Cloudflare AI Playground, which is a remote MCP client:
-
-1. Go to https://playground.ai.cloudflare.com/
-2. Enter your deployed MCP server URL (`remote-mcp-server-authless.<your-account>.workers.dev/sse`)
-3. You can now use your MCP tools directly from the playground!
-
-## Connect Claude Desktop to your MCP server
-
-You can also connect to your remote MCP server from local MCP clients, by using the [mcp-remote proxy](https://www.npmjs.com/package/mcp-remote). 
-
-To connect to your MCP server from Claude Desktop, follow [Anthropic's Quickstart](https://modelcontextprotocol.io/quickstart/user) and within Claude Desktop go to Settings > Developer > Edit Config.
-
-Update with this configuration:
-
-```json
-{
-  "mcpServers": {
-    "calculator": {
-      "command": "npx",
-      "args": [
-        "mcp-remote",
-        "http://localhost:8787/sse"  // or remote-mcp-server-authless.your-account.workers.dev/sse
-      ]
-    }
-  }
-}
-```
-
-Restart Claude and you should see the tools become available. 
+# Deployment
+For now we dont have Cloudflare workers linked to github (it would run the new version after each push) so until then you need to manually `run npx wrangler deploy --config <your wrangler.local.jsonc>`. If you configured everything in wrangler.local then just run `npx wrangler deploy`    
