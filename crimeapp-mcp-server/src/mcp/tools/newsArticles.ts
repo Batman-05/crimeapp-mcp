@@ -6,21 +6,22 @@ import { fetchArticles } from "../../db/news";
 export function registerNewsArticlesTool(server: McpServer, env: WorkerEnv) {
 	server.tool(
 		"news_articles",
-		"Fetch recent crime-related news articles from the CRIME_DB.article table.",
+		"Fetch recent crime-related news articles and their related incidents from the CRIME_DB database.",
 		{
 			limit: z.number().int().min(1).max(50).default(10),
 			since: z.string().datetime().optional(),
 			query: z.string().optional(),
 			sourceIds: z.array(z.coerce.number()).optional(),
+			cityId: z.coerce.number().int().positive().optional(),
 		},
-		async ({ limit, since, query, sourceIds }) => {
+		async ({ limit, since, query, sourceIds, cityId }) => {
 			if (!env.CRIME_DB) {
 				return { content: [{ type: "text", text: "CRIME_DB binding is absent." }], isError: true };
 			}
 
 			let articles;
 			try {
-				articles = await fetchArticles(env.CRIME_DB, { limit, since, query, sourceIds });
+				articles = await fetchArticles(env.CRIME_DB, { limit, since, query, sourceIds, cityId });
 			} catch (err) {
 				const message = err instanceof Error ? err.message : String(err);
 				return {
@@ -34,7 +35,10 @@ export function registerNewsArticlesTool(server: McpServer, env: WorkerEnv) {
 			}
 
 			const preview = articles
-				.map((a) => `- ${a.title} (${a.publishedAt ?? "unknown date"}) -> ${a.url}`)
+				.map((a) => {
+					const related = a.relatedIncidents?.length ? ` [${a.relatedIncidents.length} related incidents]` : "";
+					return `- ${a.title} (${a.publishedAt ?? "unknown date"}) -> ${a.url}${related}`;
+				})
 				.join("\n");
 
 			return {

@@ -147,3 +147,38 @@ vite.config.ts.timestamp-*
 
 # Snyk Security Extension - AI Rules (auto-generated)
 .github\instructions\snyk_rules.instructions.md
+
+# LangChain / LangGraph agent (Python)
+__pycache__/
+*.py[cod]
+*.pyd
+*.so
+*.dylib
+*.egg-info/
+.eggs/
+.python-version
+.envrc
+.venv/
+.venv*/
+venv/
+env/
+.ruff_cache/
+.pytest_cache/
+.mypy_cache/
+.pytype/
+.pyre/
+.pyrightcache/
+.coverage
+coverage.*
+htmlcov/
+
+# LangChain / LangGraph local state and vector stores
+.langchain/
+.langgraph/
+.chroma/
+vectorstore*/
+checkpoints/
+persist_directory/
+state_store/
+*.sqlite
+*.sqlite3
