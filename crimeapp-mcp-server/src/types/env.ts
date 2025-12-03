@@ -8,4 +8,6 @@ export type WorkerEnv = Env & {
 	OPENAI_API_KEY?: MaybeSecretBinding;
 	POLICY_AUD?: MaybeSecretBinding;
 	TEAM_DOMAIN?: MaybeSecretBinding;
+	LANG_AGENT_URL?: string;
+	AGENT_SHARED_SECRET?: string;
 };

@@ -4,6 +4,9 @@ import { registerOpenAiChatTool } from "./mcp/tools/openAiChat";
 import { registerCrimeInsightsTool } from "./mcp/tools/crimeInsights";
 import { registerNewsArticlesTool } from "./mcp/tools/newsArticles";
 import { registerListToolsHelper } from "./mcp/tools/listTools";
+import { isAuthorized } from "./lib/agent";
+import { sanitizeSelect } from "./db/sql-guardrails";
+import { fetchArticles } from "./db/news";
 import type { WorkerEnv } from "./types/env";
 
 /**
@@ -21,7 +24,7 @@ export class MyMCP extends McpAgent<WorkerEnv> {
 		// registerCrimeInsightsPrompt(this.server);
 		registerCrimeInsightsTool(this.server, this.env);
 		registerNewsArticlesTool(this.server, this.env);
-		registerListToolsHelper(this.server);
+		registerListToolsHelper(this.server, this.env);
 	}
 }
 
@@ -31,6 +34,62 @@ export class MyMCP extends McpAgent<WorkerEnv> {
 export default {
 	async fetch(request: Request, env: WorkerEnv, ctx: ExecutionContext) {
 		const url = new URL(request.url);
+
+		if (url.pathname === "/proxy/db/query" && request.method === "POST") {
+			if (!isAuthorized(request, env)) {
+				return new Response("Unauthorized", { status: 401 });
+			}
+			if (!env.CRIME_DB) {
+				return new Response("CRIME_DB binding is not configured.", { status: 500 });
+			}
+			try {
+				const { sql, params } = (await request.json()) as {
+					sql?: string;
+					params?: Record<string, unknown>;
+				};
+				if (!sql || typeof sql !== "string") {
+					return new Response("Missing SQL", { status: 400 });
+				}
+				const safeSql = sanitizeSelect(sql);
+				let stmt = env.CRIME_DB.prepare(safeSql);
+				if (params && Object.keys(params).length) {
+					const names = [...safeSql.matchAll(/:\w+/g)].map((m) => m[0].slice(1));
+					const values = names.map((n) => params[n]);
+					stmt = stmt.bind(...values);
+				}
+				const res = await stmt.all();
+				const rows = res.results ?? [];
+				const columns = rows[0] ? Object.keys(rows[0]) : [];
+				return Response.json({ rows, columns });
+			} catch (error) {
+				const message = error instanceof Error ? error.message : String(error);
+				return new Response(`DB query failed: ${message}`, { status: 400 });
+			}
+		}
+
+		if (url.pathname === "/proxy/news_articles" && request.method === "POST") {
+			if (!isAuthorized(request, env)) {
+				return new Response("Unauthorized", { status: 401 });
+			}
+			if (!env.CRIME_DB) {
+				return new Response("CRIME_DB binding is not configured.", { status: 500 });
+			}
+			try {
+				const body = await request.json();
+				const { limit = 10, since, query, sourceIds, cityId } = body ?? {};
+				const articles = await fetchArticles(env.CRIME_DB, {
+					limit,
+					since,
+					query,
+					sourceIds,
+					cityId,
+				});
+				return Response.json({ count: articles.length, articles });
+			} catch (error) {
+				const message = error instanceof Error ? error.message : String(error);
+				return new Response(`Failed to fetch articles: ${message}`, { status: 400 });
+			}
+		}
 
 		if (url.pathname === "/sse" || url.pathname === "/sse/message") {
 			return MyMCP.serveSSE("/sse").fetch(request, env, ctx);
