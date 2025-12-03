@@ -5,6 +5,7 @@ load_dotenv()
 
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 MCP_BASE_URL = os.getenv("MCP_BASE_URL")
+MCP_GATEWAY_TOKEN = os.getenv("MCP_GATEWAY_TOKEN")
 
 if not OPENAI_API_KEY:
     raise RuntimeError("OPENAI_API_KEY not set")
