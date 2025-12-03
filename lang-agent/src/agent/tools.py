@@ -1,12 +1,12 @@
-from typing import Any
+from typing import Any, Optional
 
 from langchain.tools import tool
 
-from src.mcp_client.client import call_mcp_tool
+from src.agent import services
 
 
 def _omit_none(payload: dict[str, Any]) -> dict[str, Any]:
-    """Return a copy without None values so Zod optional fields pass validation."""
+    """Return a copy without None values so optional fields pass validation."""
     return {k: v for k, v in payload.items() if v is not None}
 
 
@@ -18,21 +18,16 @@ def crime_insights(
     preview_limit: int = 20,
 ) -> Any:
     """Ask natural questions about the crime dataset."""
-    payload = {
-        "q": q,
-        "model": model,
-        "summarize": summarize,
-        "preview_limit": preview_limit,
-    }
-    return call_mcp_tool("crime_insights", payload)
+    return services.crime_insights_service(q=q, model=model, summarize=summarize, preview_limit=preview_limit)
 
 
 @tool
 def news_articles(
     limit: int = 10,
-    since: str | None = None,
-    query: str | None = None,
-    sourceIds: list[int] | None = None,
+    since: Optional[str] = None,
+    query: Optional[str] = None,
+    sourceIds: Optional[list[int]] = None,
+    cityId: Optional[int] = None,
 ) -> Any:
     """Fetch recent crime-related news articles from CRIME_DB."""
     payload = _omit_none(
@@ -41,33 +36,34 @@ def news_articles(
             "since": since,
             "query": query,
             "sourceIds": sourceIds,
+            "cityId": cityId,
         }
     )
-    return call_mcp_tool("news_articles", payload)
+    return services.news_articles_service(**payload)
 
 
 @tool
 def list_tools() -> Any:
-    """List MCP tools currently registered on the server."""
-    return call_mcp_tool("list_tools", {})
+    """List tools currently available to the agent."""
+    return services.list_tools_service()
 
 
 @tool
 def openai_chat(
     prompt: str,
     model: str = "gpt-4o-mini",
-    system: str | None = None,
-    temperature: float | None = None,
-    maxTokens: int | None = None,
+    system: Optional[str] = None,
+    temperature: Optional[float] = None,
+    maxTokens: Optional[int] = None,
 ) -> Any:
-    """General-purpose chat completion via the MCP server."""
+    """General-purpose chat completion via the agent."""
     payload = _omit_none(
         {
             "model": model,
             "prompt": prompt,
             "system": system,
             "temperature": temperature,
-            "maxTokens": maxTokens,
+            "max_tokens": maxTokens,
         }
     )
-    return call_mcp_tool("openai_chat", payload)
+    return services.openai_chat_service(**payload)
