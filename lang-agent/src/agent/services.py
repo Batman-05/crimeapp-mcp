@@ -308,7 +308,7 @@ def recent_day_summary_service(limit: int = 25) -> Dict[str, Any]:
             return {"content": [{"type": "text", "text": "No incidents found."}], "metadata": {"count": 0}}
 
         incidents_res = _run_db_query(
-            """
+            f"""
             WITH latest AS (
                 SELECT MAX(reported_date) AS d
                 FROM incidents
