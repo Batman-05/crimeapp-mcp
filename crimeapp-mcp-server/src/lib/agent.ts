@@ -17,9 +17,9 @@ type AgentResponse = {
 
 function buildAuthHeaders(env: WorkerEnv): Record<string, string> {
 	const headers: Record<string, string> = { "Content-Type": "application/json" };
-	if (env.AGENT_SHARED_SECRET) {
-		headers.Authorization = `Bearer ${env.AGENT_SHARED_SECRET}`;
-	}
+	// if (env.AGENT_SHARED_SECRET) {
+	// 	headers.Authorization = `Bearer ${env.AGENT_SHARED_SECRET}`;
+	// }
 	return headers;
 }
 
@@ -42,9 +42,9 @@ export async function callAgentTool(env: WorkerEnv, toolName: string, payload: u
 	return (await response.json()) as AgentResponse;
 }
 
-export function isAuthorized(request: Request, env: WorkerEnv): boolean {
-	const required = env.AGENT_SHARED_SECRET;
-	if (!required) return true;
-	const auth = request.headers.get("authorization") ?? "";
-	return auth === `Bearer ${required}`;
-}
+// export function isAuthorized(request: Request, env: WorkerEnv): boolean {
+// 	const required = env.AGENT_SHARED_SECRET;
+// 	if (!required) return true;
+// 	const auth = request.headers.get("authorization") ?? "";
+// 	return auth === `Bearer ${required}`;
+// }
