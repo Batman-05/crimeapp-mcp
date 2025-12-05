@@ -66,3 +66,9 @@ def openai_chat(
         }
     )
     return services.openai_chat_service(**payload)
+
+
+@tool
+def recent_day_summary(limit: int = 25) -> Any:
+    """Summarize incidents from the most recent reported day with article links when available."""
+    return services.recent_day_summary_service(limit=limit)
