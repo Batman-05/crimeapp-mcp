@@ -68,3 +68,15 @@ async def tool_news_articles(payload: NewsArticlesPayload):
 @api.post("/tools/list_tools")
 async def tool_list_tools():
     return services.list_tools_service()
+
+@api.post("/tools/recent_day_summary")
+async def tool_recent_day_summary(payload: dict | None = None):
+    limit = 25
+    if payload and isinstance(payload, dict):
+        try:
+            maybe_limit = payload.get("limit")
+            if maybe_limit is not None:
+                limit = int(maybe_limit)
+        except Exception:
+            pass
+    return services.recent_day_summary_service(limit=limit)
