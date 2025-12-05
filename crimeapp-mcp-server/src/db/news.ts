@@ -163,7 +163,7 @@ async function loadRelatedIncidents(
       i.neighbourhood,
       i.occurred_date,
       i.reported_date
-    FROM article_incident_links l
+    FROM incident_article_link l
     INNER JOIN incidents i ON i.id = l.incident_id
     WHERE l.article_id IN (${placeholders})
     ORDER BY l.article_id, l.match_score DESC, i.id DESC
