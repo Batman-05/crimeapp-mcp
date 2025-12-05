@@ -4,7 +4,7 @@ import { registerOpenAiChatTool } from "./mcp/tools/openAiChat";
 import { registerCrimeInsightsTool } from "./mcp/tools/crimeInsights";
 import { registerNewsArticlesTool } from "./mcp/tools/newsArticles";
 import { registerListToolsHelper } from "./mcp/tools/listTools";
-import { isAuthorized } from "./lib/agent";
+// import { isAuthorized } from "./lib/agent";
 import { sanitizeSelect } from "./db/sql-guardrails";
 import { fetchArticles } from "./db/news";
 import type { WorkerEnv } from "./types/env";
@@ -15,7 +15,7 @@ import type { WorkerEnv } from "./types/env";
 export class MyMCP extends McpAgent<WorkerEnv> {
 	server = new McpServer({
 		name: "Authless Crime Analyst",
-		version: "1.0.0",
+		version: "1.0.5",
 	});
 
 	async init() {
@@ -36,9 +36,9 @@ export default {
 		const url = new URL(request.url);
 
 		if (url.pathname === "/proxy/db/query" && request.method === "POST") {
-			if (!isAuthorized(request, env)) {
-				return new Response("Unauthorized", { status: 401 });
-			}
+			// if (!isAuthorized(request, env)) {
+			// 	return new Response("Unauthorized", { status: 401 });
+			// }
 			if (!env.CRIME_DB) {
 				return new Response("CRIME_DB binding is not configured.", { status: 500 });
 			}
@@ -68,15 +68,29 @@ export default {
 		}
 
 		if (url.pathname === "/proxy/news_articles" && request.method === "POST") {
-			if (!isAuthorized(request, env)) {
-				return new Response("Unauthorized", { status: 401 });
-			}
+			// if (!isAuthorized(request, env)) {
+			// 	return new Response("Unauthorized", { status: 401 });
+			// }
 			if (!env.CRIME_DB) {
 				return new Response("CRIME_DB binding is not configured.", { status: 500 });
 			}
 			try {
-				const body = await request.json();
-				const { limit = 10, since, query, sourceIds, cityId } = body ?? {};
+				let body: unknown = {};
+				try {
+					body = await request.json();
+				} catch {
+					body = {};
+				}
+				if (!body || typeof body !== "object") {
+					return new Response("Invalid JSON body", { status: 400 });
+				}
+				const { limit = 10, since, query, sourceIds, cityId } = body as {
+					limit?: number;
+					since?: string;
+					query?: string;
+					sourceIds?: number[];
+					cityId?: number;
+				};
 				const articles = await fetchArticles(env.CRIME_DB, {
 					limit,
 					since,
