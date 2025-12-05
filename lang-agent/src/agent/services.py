@@ -35,6 +35,42 @@ DEFAULT_CRIME_DB_SCHEMA: List[Dict[str, Any]] = [
             {"name": "x", "type": "real", "description": "Projected X coordinate supplied by the dataset."},
             {"name": "y", "type": "real", "description": "Projected Y coordinate supplied by the dataset."},
         ],
+    },
+    {
+        "name": "article",
+        "description": "News articles that may be related to incidents.",
+        "columns": [
+            {"name": "article_id", "type": "integer", "description": "Primary key for the article."},
+            {"name": "source_id", "type": "integer", "description": "News source identifier."},
+            {"name": "url_canonical", "type": "text", "description": "Canonical article URL."},
+            {"name": "url_landing", "type": "text", "description": "Landing page URL if different."},
+            {"name": "title", "type": "text", "description": "Article headline."},
+            {"name": "byline", "type": "text", "description": "Author/byline text."},
+            {"name": "published_at", "type": "text", "description": "Publication timestamp (ISO string)."},
+            {"name": "fetched_at", "type": "text", "description": "Time the article was ingested."},
+            {"name": "body_text", "type": "text", "description": "Full article body text."},
+            {"name": "body_sha256", "type": "text", "description": "Hash of the article body."},
+            {"name": "main_image_url", "type": "text", "description": "Primary image URL."},
+            {"name": "is_paywalled", "type": "integer", "description": "1 if paywalled, else 0/null."},
+            {"name": "city_id", "type": "integer", "description": "City identifier for the article."},
+            {"name": "lat", "type": "real", "description": "Latitude if geocoded."},
+            {"name": "lng", "type": "real", "description": "Longitude if geocoded."},
+            {"name": "geocell", "type": "text", "description": "Geospatial cell identifier."},
+            {"name": "entities_json", "type": "text", "description": "JSON of extracted entities."},
+            {"name": "categories", "type": "text", "description": "Comma-separated category labels."},
+        ],
+    },
+    {
+        "name": "incident_article_link",
+        "description": "Links articles to incidents with match scores and methods.",
+        "columns": [
+            {"name": "link_id", "type": "integer", "description": "Primary key for the link."},
+            {"name": "incident_id", "type": "integer", "description": "FK to incidents.id."},
+            {"name": "article_id", "type": "integer", "description": "FK to article.article_id."},
+            {"name": "match_score", "type": "real", "description": "Confidence score for the link."},
+            {"name": "method", "type": "text", "description": "How the link was generated (manual/heuristic/llm)."},
+            {"name": "created_at", "type": "text", "description": "Timestamp when the link was created."},
+        ],
     }
 ]
 
@@ -77,6 +113,7 @@ def _plan_sql_from_query(user_query: str, schema_json: str, model: str = "gpt-4o
             " - Always include a LIMIT (<= 1000).",
             " - Prefer named parameters (:p1, :p2) instead of string concatenation.",
             " - Dates: use SQLite date/julianday with 'now' (e.g., julianday('now','-30 day')).",
+            " - To connect articles with incidents, join incident_article_link (incident_id -> incidents.id, article_id -> article.article_id).",
         ]
     )
 

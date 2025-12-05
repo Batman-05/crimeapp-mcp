@@ -29,7 +29,7 @@ def news_articles(
     sourceIds: Optional[list[int]] = None,
     cityId: Optional[int] = None,
 ) -> Any:
-    """Fetch recent crime-related news articles from CRIME_DB."""
+    """Fetch recent crime-related news articles from CRIME_DB, article table."""
     payload = _omit_none(
         {
             "limit": limit,
@@ -40,7 +40,6 @@ def news_articles(
         }
     )
     return services.news_articles_service(**payload)
-
 
 @tool
 def list_tools() -> Any:
