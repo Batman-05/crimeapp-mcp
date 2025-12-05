@@ -292,6 +292,8 @@ def recent_day_summary_service(limit: int = 25) -> Dict[str, Any]:
     Return a summary of incidents from the most recent reported day, including any linked article.
     """
     try:
+        safe_limit = max(1, min(int(limit), 200))
+         
         latest_res = _run_db_query(
             """
             SELECT MAX(reported_date) AS latest_date
@@ -327,9 +329,8 @@ def recent_day_summary_service(limit: int = 25) -> Dict[str, Any]:
             LEFT JOIN article a ON a.article_id = l.article_id
             WHERE i.reported_date = latest.d
             ORDER BY i.reported_date DESC, i.id DESC, COALESCE(l.match_score, 0) DESC
-            LIMIT :p1
-            """,
-            {"p1": limit},
+            LIMIT {safe_limit}
+            """
         )
 
         rows: List[IncidentSummary] = incidents_res.get("rows", [])
