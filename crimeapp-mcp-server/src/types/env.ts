@@ -9,5 +9,5 @@ export type WorkerEnv = Env & {
 	POLICY_AUD?: MaybeSecretBinding;
 	TEAM_DOMAIN?: MaybeSecretBinding;
 	LANG_AGENT_URL?: string;
-	AGENT_SHARED_SECRET?: string;
+	// AGENT_SHARED_SECRET?: string;
 };
