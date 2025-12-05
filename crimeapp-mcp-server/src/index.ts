@@ -4,6 +4,7 @@ import { registerOpenAiChatTool } from "./mcp/tools/openAiChat";
 import { registerCrimeInsightsTool } from "./mcp/tools/crimeInsights";
 import { registerNewsArticlesTool } from "./mcp/tools/newsArticles";
 import { registerListToolsHelper } from "./mcp/tools/listTools";
+import { registerRecentDaySummaryTool } from "./mcp/tools/recentDaySummary";
 // import { isAuthorized } from "./lib/agent";
 import { sanitizeSelect } from "./db/sql-guardrails";
 import { fetchArticles } from "./db/news";
@@ -24,6 +25,7 @@ export class MyMCP extends McpAgent<WorkerEnv> {
 		// registerCrimeInsightsPrompt(this.server);
 		registerCrimeInsightsTool(this.server, this.env);
 		registerNewsArticlesTool(this.server, this.env);
+		registerRecentDaySummaryTool(this.server, this.env);
 		registerListToolsHelper(this.server, this.env);
 	}
 }
