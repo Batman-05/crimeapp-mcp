@@ -8,6 +8,10 @@ from langchain_core.messages import HumanMessage, SystemMessage
 
 from src.config import MCP_BASE_URL, MCP_GATEWAY_TOKEN, OPENAI_API_KEY
 
+# Types for structured return values
+ArticleSummary = Dict[str, Any]
+IncidentSummary = Dict[str, Any]
+
 DEFAULT_CRIME_DB_SCHEMA: List[Dict[str, Any]] = [
     {
         "name": "incidents",
@@ -283,10 +287,86 @@ def news_articles_service(
     }
 
 
+def recent_day_summary_service(limit: int = 25) -> Dict[str, Any]:
+    """
+    Return a summary of incidents from the most recent reported day, including any linked article.
+    """
+    try:
+        latest_res = _run_db_query(
+            """
+            SELECT MAX(reported_date) AS latest_date
+            FROM incidents
+            WHERE reported_date IS NOT NULL
+            """
+        )
+        latest_date = None
+        if latest_res.get("rows"):
+            latest_date = latest_res["rows"][0].get("latest_date")
+        if not latest_date:
+            return {"content": [{"type": "text", "text": "No incidents found."}], "metadata": {"count": 0}}
+
+        incidents_res = _run_db_query(
+            """
+            WITH latest AS (
+                SELECT MAX(reported_date) AS d
+                FROM incidents
+                WHERE reported_date IS NOT NULL
+            )
+            SELECT
+                i.id AS incident_id,
+                i.reported_date,
+                i.neighbourhood,
+                COALESCE(i.offence_summary, i.offence_category) AS crime_type,
+                a.title AS article_title,
+                COALESCE(a.url_canonical, a.url_landing) AS article_url,
+                l.match_score,
+                l.method
+            FROM incidents i
+            CROSS JOIN latest
+            LEFT JOIN incident_article_link l ON l.incident_id = i.id
+            LEFT JOIN article a ON a.article_id = l.article_id
+            WHERE i.reported_date = latest.d
+            ORDER BY i.reported_date DESC, i.id DESC, COALESCE(l.match_score, 0) DESC
+            LIMIT :p1
+            """,
+            {"p1": limit},
+        )
+
+        rows: List[IncidentSummary] = incidents_res.get("rows", [])
+        if not rows:
+            return {
+                "content": [{"type": "text", "text": f"No incidents found on {latest_date}."}],
+                "metadata": {"count": 0, "latestDate": latest_date},
+            }
+
+        lines: List[str] = []
+        for row in rows:
+            article_hint = ""
+            if row.get("article_url"):
+                article_hint = f" | article: {row.get('article_url')}"
+            lines.append(
+                f"- {row.get('reported_date') or latest_date} | {row.get('neighbourhood') or 'Unknown area'} | "
+                f"{row.get('crime_type') or 'Unknown crime'}{article_hint}"
+            )
+
+        return {
+            "content": [
+                {
+                    "type": "text",
+                    "text": f"Most recent day ({latest_date}) incidents ({len(rows)} shown):\n" + "\n".join(lines),
+                }
+            ],
+            "metadata": {"count": len(rows), "latestDate": latest_date, "incidents": rows},
+        }
+    except Exception as exc:
+        return {"content": [{"type": "text", "text": f"Failed to build summary: {exc}"}], "isError": True}
+
+
 def list_tools_service() -> Dict[str, Any]:
     tools = [
         {"name": "crime_insights", "description": "Ask natural questions about the crime dataset."},
         {"name": "news_articles", "description": "Fetch recent crime-related news articles from CRIME_DB."},
+        {"name": "recent_day_summary", "description": "Summarize incidents from the most recent reported day with article links if available."},
         {"name": "openai_chat", "description": "General-purpose chat completion via the agent."},
         {"name": "list_tools", "description": "List tools currently available to the agent."},
     ]
